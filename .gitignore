@@ -1,0 +1,10 @@
+__pycache__
+data/*
+checkpoints/*
+log/*
+.idea
+
+*.json
+*.pkl
+*.tar
+
