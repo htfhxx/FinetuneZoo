@@ -4,7 +4,7 @@ BERT fine-tune LCQMC分类任务
 
 ###  requirements
 python3.7
-pytorch == 1.5.1
+torch == 1.5.1
 tqdm == 4.46.0
 scikit-learn == 0.23.1
 numpy == 1.19.4
