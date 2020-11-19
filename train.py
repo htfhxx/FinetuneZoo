@@ -35,10 +35,10 @@ parser.add_argument("--config", default="utils/config/train_bert.config")
 parser.add_argument("--pretrain_model", default="checkpoints/roberta_wwm_ext_pytorch/")
 parser.add_argument("--mode", default="train")
 parser.add_argument("--max_len", default=512)
-parser.add_argument("--batch_size", default=3)
-parser.add_argument("--epoches", default=30)
+parser.add_argument("--batch_size", default=16)
+parser.add_argument("--epoches", default=5)
 parser.add_argument("--learning_rate", default=0.00002)
-parser.add_argument("--max_patience_epoches", default=10)
+parser.add_argument("--max_patience_epoches", default=2)
 parser.add_argument("--log_path", default='log/')
 parser.add_argument("--checkpoint_dir", default='checkpoints/')
 args = parser.parse_args()
@@ -157,7 +157,6 @@ def train(model, train_loader, dev_loader, config):
     patience_count, best_accu = 0, 0
     start_epoch = 0
     for epoch in range(start_epoch, epoches):
-        model.train()
         train_loss,  avg_accu = train_epoch(
             epoch = epoch,
             config=config,
@@ -172,7 +171,6 @@ def train(model, train_loader, dev_loader, config):
         with open(log_path + 'train_result.csv', 'a') as file:
             file.write("{},{},{}\n".format(epoch, train_loss,avg_accu))
 
-        model.eval()
         dev_loss, dev_accu  = dev_epoch(
             epoch = epoch,
             config=config,
@@ -183,7 +181,7 @@ def train(model, train_loader, dev_loader, config):
         logging("* Dev epoch {}".format(epoch + 1))
         logging("-> loss={}, Accuracy={}".format(dev_loss,dev_accu))
         with open(log_path + 'valid_result.csv', 'a') as file:
-            file.write("{},{},{}\n".format(epoch, dev_loss,avg_accu))
+            file.write("{},{},{}\n".format(epoch, dev_loss,dev_accu))
 
         torch.save({
             "model": model.state_dict(),
