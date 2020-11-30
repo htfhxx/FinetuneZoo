@@ -8,10 +8,9 @@ from transformers import BertModel,BertForSequenceClassification
 class BertClassifier(nn.Module):
     def __init__(self, config, transformer_width, num_labels):
         super(BertClassifier, self).__init__()
-        self.device = config["device"]
         self.bert_layer = BertModel.from_pretrained(config["pretrain_model"])
         # self.tm = BertForSequenceClassification.from_pretrained(config["pretrain_model"])
-        self.classifier_layer = nn.Linear(transformer_width, 2)
+        self.classifier_layer = nn.Linear(transformer_width, num_labels)
         # self.softmax = nn.Softmax(dim=-1)
 
 

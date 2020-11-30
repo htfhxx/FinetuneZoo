@@ -4,7 +4,7 @@ import os
 import time
 import torch
 from torch.nn import functional as F
-# from tqdm import tqdm
+import torch.nn as nn
 from torch.utils.data import DataLoader
 from utils.Criterion import LabelScorer
 from utils.Data import LcqmcDataset
@@ -32,8 +32,8 @@ def set_up_logging(config):
 # prepration for config
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", default="utils/config/train_bert.config")
-parser.add_argument("--pretrain_model", default="checkpoints/roberta_wwm_ext_pytorch/")
-parser.add_argument("--mode", default="train")
+parser.add_argument("--pretrain_model", default="checkpoints/bert-base-chinese/")
+parser.add_argument("--mode", default="train")  # test
 parser.add_argument("--max_len", default=512)
 parser.add_argument("--batch_size", default=16)
 parser.add_argument("--epoches", default=20)
@@ -41,6 +41,8 @@ parser.add_argument("--learning_rate", default=0.00002)
 parser.add_argument("--max_patience_epoches", default=5)
 parser.add_argument("--log_path", default='log/')
 parser.add_argument("--checkpoint_dir", default='checkpoints/')
+parser.add_argument("--use_gpu", default='yes')  # no
+parser.add_argument("--gpus", default='0,1')
 args = parser.parse_args()
 
 with open(args.config, "r") as config_file:
@@ -50,7 +52,7 @@ config["config"] = args.config
 config["pretrain_model"] = args.pretrain_model
 config["mode"] = args.mode
 config["max_len"] = args.max_len
-config["batch_size"] = args.batch_size
+config["batch_size"] = int(args.batch_size)
 config["epoches"] = args.epoches
 config["learning_rate"] = args.learning_rate
 config["max_patience_epoches"] = args.max_patience_epoches
@@ -59,16 +61,25 @@ config["checkpoint_dir"] = args.checkpoint_dir
 
 logging,log_path, checkpoint_dir = set_up_logging(config)
 
-config["device"] = "cuda:0" if torch.cuda.is_available() else "cpu"
-logging("=" * 20+"Running on device: {}".format(config["device"])+"=" * 20)
+# config["device"] = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+
+if args.use_gpu == 'yes' and torch.cuda.is_available():
+    os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus
+    config['use_gpu'] = True
+    config['gpus'] = args.gpus
+    logging("=" * 20+"Running on device: {}  ".format(args.gpus)+"=" * 20)
+elif args.use_gpu == 'no':
+    config['use_gpu'] = False
+    logging("=" * 20+"Running on device: cpu" + "=" * 20)
+else:
+    logging("Wrong GPU configuration..")
+    exit()
 
 
 
 
-
-
-
-def train_epoch(epoch, config, device, model, optimizer, train_loader):
+def train_epoch(epoch, config, model, optimizer, train_loader):
     model.train()
 
     train_loss = 0.0
@@ -79,9 +90,15 @@ def train_epoch(epoch, config, device, model, optimizer, train_loader):
         if idx>10:
             break
 
-        text = batch["text"].to(device)
-        mask = batch["mask"].to(device)
-        labels = torch.squeeze(batch["label"].to(device), dim=-1)
+        text = batch["text"]
+        mask = batch["mask"]
+        labels = batch["label"]
+        if config['use_gpu']:
+            text = text.cuda()
+            mask = mask.cuda()
+            labels = labels.cuda()
+
+        labels = torch.squeeze(labels, dim=-1)
 
         optimizer.zero_grad()
 
@@ -107,7 +124,7 @@ def train_epoch(epoch, config, device, model, optimizer, train_loader):
     return train_loss, avg_accu
 
 
-def dev_epoch(epoch, config, device, model, dev_loader):
+def dev_epoch(epoch, config, model, dev_loader):
     model.eval()
 
     dev_loss = 0.0
@@ -118,9 +135,15 @@ def dev_epoch(epoch, config, device, model, dev_loader):
         if idx>10:
             break
 
-        text = batch["text"].to(device)
-        mask = batch["mask"].to(device)
-        labels = torch.squeeze(batch["label"].to(device), dim=-1)
+        text = batch["text"]
+        mask = batch["mask"]
+        labels = batch["label"]
+        if config['use_gpu']:
+            text = text.cuda()
+            mask = mask.cuda()
+            labels = labels.cuda()
+
+        labels = torch.squeeze(labels, dim=-1)
 
         logits = model(text, mask)
 
@@ -162,7 +185,6 @@ def train(model, train_loader, dev_loader, config):
         train_loss,  avg_accu = train_epoch(
             epoch = epoch,
             config=config,
-            device=config["device"],
             model=model,
             optimizer=optimizer,
             train_loader=train_loader
@@ -176,7 +198,6 @@ def train(model, train_loader, dev_loader, config):
         dev_loss, dev_accu  = dev_epoch(
             epoch = epoch,
             config=config,
-            device=config["device"],
             model=model,
             dev_loader=dev_loader
         )
@@ -189,10 +210,11 @@ def train(model, train_loader, dev_loader, config):
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict()
         }, os.path.join(checkpoint_dir, 'bert_model_epoch'+str(epoch)+'.tar'))
+
         torch.save({
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict()
-        }, os.path.join(config["checkpoint_dir"], 'bert_model_epoch'+str(epoch)+'.tar'))
+        }, os.path.join(config["checkpoint_dir"], 'bert_model_epoch'+'.tar'))
 
 
         if float(dev_accu) >  float(best_accu):
@@ -220,7 +242,6 @@ def test(model, test_loader, checkpoint_dir, config):
     test_loss,  avg_accu = dev_epoch(
         epoch=0,
         config=config,
-        device=config["device"],
         model=model,
         dev_loader=test_loader
     )
@@ -233,7 +254,11 @@ def test(model, test_loader, checkpoint_dir, config):
 def main():
 
 
-    model = BertClassifier(config, transformer_width=768 , num_labels=2).to(config["device"])
+    model = BertClassifier(config, transformer_width=768 , num_labels=2)
+    if config['use_gpu']:
+        if len(config['gpus'].split(',')) >= 2:
+            model = nn.DataParallel(model)
+        model = model.cuda()
 
     # prepration for data
     if config['mode']=='train':

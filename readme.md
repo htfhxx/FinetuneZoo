@@ -88,11 +88,12 @@ python3 train_bert.py --mode test
 
 ## LCQMC
 
-| Model | Valid  | Test | Path |
-| :----:| :----: | :----: | ------ |
-| BERT |    |   |   |
-| Roberta_wwm_ext | 88.91 | 86.54 |  |
-| Roberta_wwm_ext（batch_size++） | 89.31 | 86.68 |  |
+| Model | Valid  | Test | batch_size | Path |
+| :----:| :----: | :----: | :----: | :----: |
+| Roberta_wwm_ext（batch_size++） | 89.31 | 86.68 | 16 |   |
+| BERT-base-Chinese |    |   |  128 | workspace/ACL/FinetuneZoo_all/finetuenzoo1130/  |
+| BERT-base-Chinese + 弱监督标签预测 |    |   |  128 | workspace/ACL/FinetuneZoo_all/finetuenzoo1130/  |
+
 
 
 
