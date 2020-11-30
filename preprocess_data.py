@@ -43,6 +43,7 @@ def main():
 
     tokenizer = BertTokenizer.from_pretrained(args.vocab_path)
 
+
     print('tokenize train data...')
     indexed_train = process_set(args.train_dir, tokenizer)
     print('tokenize dev data...')

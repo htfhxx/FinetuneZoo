@@ -88,10 +88,13 @@ python3 train_bert.py --mode test
 
 ## LCQMC
 
-| Model | Valid  | Test |
-| :----:| :----: | :----: |
-| BERT |    |   |
-| Roberta_wwm_ext | 88.91 | 86.54 |
+| Model | Valid  | Test | Path |
+| :----:| :----: | :----: | ------ |
+| BERT |    |   |   |
+| Roberta_wwm_ext | 88.91 | 86.54 |  |
+| Roberta_wwm_ext（batch_size++） | 89.31 | 86.68 |  |
+
+
 
 
 

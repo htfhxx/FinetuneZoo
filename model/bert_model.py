@@ -15,8 +15,8 @@ class BertClassifier(nn.Module):
         # self.softmax = nn.Softmax(dim=-1)
 
 
-    def forward(self, x):
-        _, y = self.bert_layer(x)
+    def forward(self, x, mask):
+        _, y = self.bert_layer(x, mask)
         output = self.classifier_layer(y)
         # logits = self.softmax(output)
         return output

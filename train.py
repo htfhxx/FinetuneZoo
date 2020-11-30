@@ -36,9 +36,9 @@ parser.add_argument("--pretrain_model", default="checkpoints/roberta_wwm_ext_pyt
 parser.add_argument("--mode", default="train")
 parser.add_argument("--max_len", default=512)
 parser.add_argument("--batch_size", default=16)
-parser.add_argument("--epoches", default=5)
+parser.add_argument("--epoches", default=20)
 parser.add_argument("--learning_rate", default=0.00002)
-parser.add_argument("--max_patience_epoches", default=2)
+parser.add_argument("--max_patience_epoches", default=5)
 parser.add_argument("--log_path", default='log/')
 parser.add_argument("--checkpoint_dir", default='checkpoints/')
 args = parser.parse_args()
@@ -57,7 +57,7 @@ config["max_patience_epoches"] = args.max_patience_epoches
 config["log_path"] = args.log_path
 config["checkpoint_dir"] = args.checkpoint_dir
 
-logging,log_path,checkpoint_dir = set_up_logging(config)
+logging,log_path, checkpoint_dir = set_up_logging(config)
 
 config["device"] = "cuda:0" if torch.cuda.is_available() else "cpu"
 logging("=" * 20+"Running on device: {}".format(config["device"])+"=" * 20)
@@ -76,15 +76,16 @@ def train_epoch(epoch, config, device, model, optimizer, train_loader):
     scorer = LabelScorer()
     epoch_start_time = time.time()
     for idx, batch in enumerate(train_loader):
-        # if idx>10:
-        #     break
+        if idx>10:
+            break
 
         text = batch["text"].to(device)
+        mask = batch["mask"].to(device)
         labels = torch.squeeze(batch["label"].to(device), dim=-1)
 
         optimizer.zero_grad()
 
-        logits = model(text)
+        logits = model(text, mask)
 
         loss = F.cross_entropy(logits, labels)
         loss.backward()
@@ -114,13 +115,14 @@ def dev_epoch(epoch, config, device, model, dev_loader):
     scorer = LabelScorer()
     epoch_start_time =time.time()
     for idx, batch in enumerate(dev_loader):
-        # if idx>10:
-        #     break
+        if idx>10:
+            break
 
         text = batch["text"].to(device)
+        mask = batch["mask"].to(device)
         labels = torch.squeeze(batch["label"].to(device), dim=-1)
 
-        logits = model(text)
+        logits = model(text, mask)
 
         loss = F.cross_entropy(logits, labels)
 
@@ -187,6 +189,11 @@ def train(model, train_loader, dev_loader, config):
             "model": model.state_dict(),
             "optimizer": optimizer.state_dict()
         }, os.path.join(checkpoint_dir, 'bert_model_epoch'+str(epoch)+'.tar'))
+        torch.save({
+            "model": model.state_dict(),
+            "optimizer": optimizer.state_dict()
+        }, os.path.join(config["checkpoint_dir"], 'bert_model_epoch'+str(epoch)+'.tar'))
+
 
         if float(dev_accu) >  float(best_accu):
             patience_count = 0
