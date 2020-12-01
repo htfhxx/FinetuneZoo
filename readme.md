@@ -68,6 +68,8 @@ python3 preprocess_data.py
 * 训练
 ```
 python3 train_bert.py --mode train
+
+python3 train_bert.py --mode train --use_our_pretrain yes
 ```
 ```
 nohup python3 -u train_bert.py  > myout.file 2>&1 &
@@ -88,11 +90,11 @@ python3 train_bert.py --mode test
 
 ## LCQMC
 
-| Model | Valid  | Test | batch_size | Path |
-| :----:| :----: | :----: | :----: | :----: |
-| Roberta_wwm_ext（batch_size++） | 89.31 | 86.68 | 16 |   |
-| BERT-base-Chinese |    |   |  128 | workspace/ACL/FinetuneZoo_all/finetuenzoo1130/  |
-| BERT-base-Chinese + 弱监督标签预测 |    |   |  128 | workspace/ACL/FinetuneZoo_all/finetuenzoo1130/  |
+| Model | Valid  | Test | batch_size | Best Epoch | Path |
+| :----:| :----: | :----: | :----: | :----: | :----: |
+| Roberta_wwm_ext（batch_size++） | 89.31 |  | 16 |  2 |   |
+| BERT-base-Chinese |  88.23  |  86.38 |  128 | 1 or 3  | workspace/ACL/FinetuneZoo_all/finetuenzoo1130/2020-11-30-22_09_48/  |
+| BERT-base-Chinese + 弱监督标签预测 |    |   |  128 |   |   |
 
 
 

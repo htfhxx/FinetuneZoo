@@ -33,7 +33,9 @@ def set_up_logging(config):
 parser = argparse.ArgumentParser()
 parser.add_argument("--config", default="utils/config/train_bert.config")
 parser.add_argument("--pretrain_model", default="checkpoints/bert-base-chinese/")
-parser.add_argument("--mode", default="train")  # test
+parser.add_argument("--use_our_pretrain", default="no")  # yes
+parser.add_argument("--our_pretrain_model", default="checkpoints/best_BERT_epoch.tar")
+parser.add_argument("--mode", default="test")  # train test
 parser.add_argument("--max_len", default=512)
 parser.add_argument("--batch_size", default=16)
 parser.add_argument("--epoches", default=20)
@@ -50,6 +52,8 @@ with open(args.config, "r") as config_file:
 
 config["config"] = args.config
 config["pretrain_model"] = args.pretrain_model
+config["use_our_pretrain"] = args.use_our_pretrain
+config["our_pretrain_model"] = args.our_pretrain_model
 config["mode"] = args.mode
 config["max_len"] = args.max_len
 config["batch_size"] = int(args.batch_size)
@@ -83,12 +87,12 @@ def train_epoch(epoch, config, model, optimizer, train_loader):
     model.train()
 
     train_loss = 0.0
-    # train_loader_tqdm = tqdm(train_loader, ncols=80)
+
     scorer = LabelScorer()
     epoch_start_time = time.time()
     for idx, batch in enumerate(train_loader):
-        if idx>10:
-            break
+        # if idx>10:
+        #     break
 
         text = batch["text"]
         mask = batch["mask"]
@@ -132,8 +136,8 @@ def dev_epoch(epoch, config, model, dev_loader):
     scorer = LabelScorer()
     epoch_start_time =time.time()
     for idx, batch in enumerate(dev_loader):
-        if idx>10:
-            break
+        # if idx>10:
+        #     break
 
         text = batch["text"]
         mask = batch["mask"]
@@ -211,20 +215,23 @@ def train(model, train_loader, dev_loader, config):
             "optimizer": optimizer.state_dict()
         }, os.path.join(checkpoint_dir, 'bert_model_epoch'+str(epoch)+'.tar'))
 
-        torch.save({
-            "model": model.state_dict(),
-            "optimizer": optimizer.state_dict()
-        }, os.path.join(config["checkpoint_dir"], 'bert_model_epoch'+'.tar'))
+
 
 
         if float(dev_accu) >  float(best_accu):
             patience_count = 0
             best_accu = dev_accu
+
             torch.save({
                 "model": model.state_dict(),
                 "optimizer": optimizer.state_dict()
             }, os.path.join(checkpoint_dir, 'best_bert_model.tar'))
             logging('new epoch saved as the best model {}'.format(epoch))
+
+            torch.save({
+                "model": model.state_dict(),
+                "optimizer": optimizer.state_dict()
+            }, os.path.join(config["checkpoint_dir"], 'bert_model_epoch' + '.tar'))
 
         else:
             patience_count += 1
@@ -255,6 +262,13 @@ def main():
 
 
     model = BertClassifier(config, transformer_width=768 , num_labels=2)
+    if config["use_our_pretrain"] == 'yes':
+        logging('using our pretrained model')
+        checkpoint = torch.load(config["our_pretrain_model"])
+        # print(list(model.bert_layer.named_parameters())[4])
+        model.bert_layer.load_state_dict(checkpoint['model'])
+        # print(list(model.bert_layer.named_parameters())[4])
+
     if config['use_gpu']:
         if len(config['gpus'].split(',')) >= 2:
             model = nn.DataParallel(model)
@@ -265,6 +279,10 @@ def main():
         logging("=" * 20+"Preparing training data..."+"=" * 20)
         with open(config["train_dir"], "r") as f:
             indexed_train_data = json.loads(f.read())
+
+        # indexed_train_data['text'] = indexed_train_data['text'][:100]
+        # indexed_train_data['label'] = indexed_train_data['label'][:100]
+
         train_data = LcqmcDataset(indexed_train_data, config['max_len'], padding_idx=0)
         train_loader = DataLoader(train_data, shuffle=True, batch_size=config['batch_size'])
 
