@@ -92,8 +92,8 @@ python3 train_bert.py --mode test
 
 | Model | Valid  | Test | batch_size | Best Epoch | Path |
 | :----:| :----: | :----: | :----: | :----: | :----: |
-| Roberta_wwm_ext（batch_size++） | 89.31 |  | 16 |  2 |   |
-| BERT-base-Chinese |  88.23  |  86.38 |  128 | 1 or 3  | workspace/ACL/FinetuneZoo_all/finetuenzoo1130/2020-11-30-22_09_48/  |
+| Roberta_wwm_ext（batch_size++） | 89.57 | 88.23 | 16 |  2 |  ACL/history/FinetuneZoo2/2020-11-19-16_35_29/ |
+| BERT-base-Chinese |  88.23  |  86.38 |  128 | 3（1）  | ACL/FinetuneZoo_all/finetuenzoo1130/2020-11-30-22_09_48/  |
 | BERT-base-Chinese + 弱监督标签预测 |    |   |  128 |   |   |
 
 

@@ -295,7 +295,7 @@ def main():
         train(model,  train_loader, dev_loader, config)
     elif config['mode']=='test':
         logging("=" * 20+"Preparing test data..."+"=" * 20)
-        with open(config["test_dir"], "r") as f:
+        with open(config["dev_dir"], "r") as f:  # test_dir
             indexed_test_data = json.loads(f.read())
         test_data = LcqmcDataset(indexed_test_data, config['max_len'], padding_idx=0)
         test_loader = DataLoader(test_data, shuffle=True, batch_size=config['batch_size'])
