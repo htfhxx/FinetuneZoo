@@ -106,9 +106,18 @@ def train_epoch(epoch, config, model, optimizer, train_loader):
 
         optimizer.zero_grad()
 
+
+
+
+
+
         logits = model(text, mask)
 
         loss = F.cross_entropy(logits, labels)
+
+
+
+
         loss.backward()
         optimizer.step()
 

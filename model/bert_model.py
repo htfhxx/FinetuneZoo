@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformers import BertModel,BertForSequenceClassification
+from transformers import BertModel,BertForSequenceClassification, BertTokenizer, BertForPreTraining
 
 
 
@@ -26,3 +26,33 @@ class BertClassifier(nn.Module):
      * (Tensor input, name dim, *, torch.dtype dtype)
      * (Tensor input, int dim, torch.dtype dtype)
      '''
+
+
+
+
+
+def test():
+    bert_model_path = '../checkpoints/bert-base-chinese/' # pytorch_model.bin
+    bert_config_path = '../checkpoints/bert-base-chinese/' # bert_config.json
+    vocab_path = '../checkpoints/bert-base-chinese/vocab.txt'
+
+    tokenizer = BertTokenizer.from_pretrained(vocab_path)
+    # model = BertModel.from_pretrained(bert_model_path, config=bert_config_path)
+    model = BertForPreTraining.from_pretrained(bert_model_path, config=bert_config_path)
+
+    text_batch = ["哈哈哈", "嘿嘿嘿", "嘿嘿嘿", "嘿嘿嘿"]
+    encoding = tokenizer(text_batch, return_tensors='pt', padding=True, truncation=True)
+    input_ids = encoding['input_ids']
+    print(input_ids)
+    print(input_ids.shape)
+    output1,output2 = model(input_ids)
+    print(output1)
+    print(output2)
+    print(output1.shape)
+    print(output2.shape)
+
+
+if __name__ == '__main__':
+    test()
+
+
