@@ -7,66 +7,54 @@ from torch.nn import functional as F
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from utils.Criterion import LabelScorer
-from utils.Data import LcqmcDataset
+from utils.Data import *
 from model.bert_model import BertClassifier
 from transformers import AdamW
-from utils import util
+from utils.util import *
 
-def set_up_logging(config):
-    if not os.path.exists(config['log_path']):
-        os.mkdir(config['log_path'])
-    tmp_time = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime()).replace(':','_')
-    checkpoint_dir = config["checkpoint_dir"] + tmp_time + '/'
-    log_path = config["log_path"] + tmp_time + '/'
-    if not os.path.exists(log_path):
-        os.mkdir(log_path)
-    if not os.path.exists(checkpoint_dir):
-        os.mkdir(checkpoint_dir)
-    logging = util.logging(log_path + 'log.txt')  # 往这个文件里写记录
-    logging("__________logging the args_________")
-    for k, v in config.items():
-        logging("%s:\t%s" % (str(k), str(v)))
-    logging("\n")
-    return logging,log_path,checkpoint_dir
 
-# prepration for config
 parser = argparse.ArgumentParser()
-parser.add_argument("--config", default="utils/config/train_bert.config")
+parser.add_argument("--config", default="utils/train_bert.config")
+parser.add_argument("--save_dir_name", default="balalala")
+parser.add_argument("--data_train_path", default="data/indexed/LCQMC/indexed_train.json")
+parser.add_argument("--data_dev_path", default="data/indexed/LCQMC/indexed_dev.json")
+parser.add_argument("--data_test_path", default="data/indexed/LCQMC/indexed_test.json")
 parser.add_argument("--pretrain_model", default="checkpoints/bert-base-chinese/")
-parser.add_argument("--use_our_pretrain", default="no")  # yes
-parser.add_argument("--our_pretrain_model", default="checkpoints/best_BERT_epoch.tar")
-parser.add_argument("--mode", default="test")  # train test
-parser.add_argument("--max_len", default=512)
-parser.add_argument("--batch_size", default=16)
-parser.add_argument("--epoches", default=20)
-parser.add_argument("--learning_rate", default=0.00002)
-parser.add_argument("--max_patience_epoches", default=5)
-parser.add_argument("--log_path", default='log/')
-parser.add_argument("--checkpoint_dir", default='checkpoints/')
+parser.add_argument("--load_model", default="no")  # yes or no
+parser.add_argument("--load_checkpoint", default="checkpoints/best_checkpoints.model")
+parser.add_argument("--mode", default="train")  # train or test
+parser.add_argument("--max_len", type=int, default=128)
+parser.add_argument("--batch_size", type=int, default=16) # 16
+parser.add_argument("--epoches", type=int, default=3)
+parser.add_argument("--seed", type=int, default=42)
+parser.add_argument("--eval_steps", type=int, default=1000)
+parser.add_argument("--learning_rate", type=float, default=0.00002)
 parser.add_argument("--use_gpu", default='yes')  # no
-parser.add_argument("--gpus", default='0,1')
+parser.add_argument("--gpus", default='0')
 args = parser.parse_args()
 
 with open(args.config, "r") as config_file:
     config = json.loads(config_file.read())
 
 config["config"] = args.config
+config["save_dir_name"] = args.save_dir_name
+config["data_train_path"] = args.data_train_path
+config["data_dev_path"] = args.data_dev_path
+config["data_test_path"] = args.data_test_path
 config["pretrain_model"] = args.pretrain_model
-config["use_our_pretrain"] = args.use_our_pretrain
-config["our_pretrain_model"] = args.our_pretrain_model
+config["load_model"] = args.load_model
+config["load_checkpoint"] = args.load_checkpoint
 config["mode"] = args.mode
 config["max_len"] = args.max_len
 config["batch_size"] = int(args.batch_size)
 config["epoches"] = args.epoches
+config["seed"] = args.seed
+config["eval_steps"] = args.eval_steps
 config["learning_rate"] = args.learning_rate
-config["max_patience_epoches"] = args.max_patience_epoches
-config["log_path"] = args.log_path
-config["checkpoint_dir"] = args.checkpoint_dir
 
 logging,log_path, checkpoint_dir = set_up_logging(config)
 
-# config["device"] = "cuda:0" if torch.cuda.is_available() else "cpu"
-
+set_seed(config["seed"])
 
 if args.use_gpu == 'yes' and torch.cuda.is_available():
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpus
@@ -83,58 +71,6 @@ else:
 
 
 
-def train_epoch(epoch, config, model, optimizer, train_loader):
-    model.train()
-
-    train_loss = 0.0
-
-    scorer = LabelScorer()
-    epoch_start_time = time.time()
-    for idx, batch in enumerate(train_loader):
-        # if idx>10:
-        #     break
-
-        text = batch["text"]
-        mask = batch["mask"]
-        labels = batch["label"]
-        if config['use_gpu']:
-            text = text.cuda()
-            mask = mask.cuda()
-            labels = labels.cuda()
-
-        labels = torch.squeeze(labels, dim=-1)
-
-        optimizer.zero_grad()
-
-
-
-
-
-
-        logits = model(text, mask)
-
-        loss = F.cross_entropy(logits, labels)
-
-
-
-
-        loss.backward()
-        optimizer.step()
-
-
-        prediction = logits.argmax(-1)
-        prediction = prediction.cpu().clone().numpy()
-        labels = labels.cpu().clone().numpy()
-        scorer.update(prediction, labels)
-
-        train_loss += loss.item()
-        logging("Training ----> Epoch: {},  Batch: {}/{},  This epoch takes {}/{}s,  Avg.batch train loss: {}".format(epoch, idx+1,len(train_loader), '{:.2f}'.format(time.time()-epoch_start_time),'{:.2f}'.format((time.time()-epoch_start_time)/(idx+1)*len(train_loader)), '{:.5f}'.format(train_loss / (idx + 1))))
-        # train_loader_tqdm.set_description(description)
-    train_loss /= len(train_loader)
-    avg_accu = scorer.get_avg_scores()
-    avg_accu = '{:.4f}'.format(avg_accu)
-    train_loss = '{:.4f}'.format(train_loss)
-    return train_loss, avg_accu
 
 
 def dev_epoch(epoch, config, model, dev_loader):
@@ -145,28 +81,12 @@ def dev_epoch(epoch, config, model, dev_loader):
     scorer = LabelScorer()
     epoch_start_time =time.time()
     for idx, batch in enumerate(dev_loader):
-        # if idx>10:
-        #     break
+        if idx>31:
+            break
+        loss, prediction = model(batch, config['use_gpu'])
 
-        text = batch["text"]
-        mask = batch["mask"]
-        labels = batch["label"]
-        if config['use_gpu']:
-            text = text.cuda()
-            mask = mask.cuda()
-            labels = labels.cuda()
-
-        labels = torch.squeeze(labels, dim=-1)
-
-        logits = model(text, mask)
-
-        loss = F.cross_entropy(logits, labels)
-
-
-
-        prediction = logits.argmax(-1)
         prediction = prediction.cpu().clone().numpy()
-        labels = labels.cpu().clone().numpy()
+        labels = list(batch['labels'].numpy())
         scorer.update(prediction, labels)
 
         dev_loss += loss.item()
@@ -175,107 +95,129 @@ def dev_epoch(epoch, config, model, dev_loader):
 
         #dev_loader_tqdm.set_description(description)
     dev_loss /= len(dev_loader)
-    avg_accu = scorer.get_avg_scores()
-    avg_accu = '{:.4f}'.format(avg_accu)
+    avg_accu, precision, recall, f1 =  scorer.get_avg_scores()
+    avg_accu = '{:.2f}'.format(avg_accu)
+    precision = '{:.2f}'.format(precision)
+    recall = '{:.2f}'.format(recall)
+    f1 = '{:.2f}'.format(f1)
     dev_loss = '{:.4f}'.format(dev_loss)
-    return dev_loss, avg_accu
+    return dev_loss, avg_accu,precision, recall, f1
 
 
 def train(model, train_loader, dev_loader, config):
 
-
     epoches = config["epoches"]
     learning_rate = config["learning_rate"]
-    max_patience_epoches = config["max_patience_epoches"]
-    # criterion = Criterion()
-    # optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
     optimizer = AdamW(model.parameters(), lr=learning_rate)
 
+    best_accu = 0
+    step_cnt = 0
+    start_time = time.time()
 
-    patience_count, best_accu = 0, 0
-    start_epoch = 0
-    for epoch in range(start_epoch, epoches):
-        train_loss,  avg_accu = train_epoch(
-            epoch = epoch,
-            config=config,
-            model=model,
-            optimizer=optimizer,
-            train_loader=train_loader
-        )
-        logging("* Train epoch {}".format(epoch + 1))
-        logging("-> loss={}, Accuracy={}".format(train_loss, avg_accu))
+    for epoch in range(epoches):
+        train_loss = 0.0
+        train_scorer = LabelScorer()
+        model.train()
+        for idx, batch in enumerate(train_loader):
+            if idx > 200:
+                break
+            optimizer.zero_grad()
+
+            loss, prediction = model(batch, config['use_gpu'])
+            loss.backward()
+            optimizer.step()
+
+            prediction = prediction.cpu().clone().numpy()
+            labels = batch['labels'].numpy()
+            train_scorer.update(prediction, labels)
+
+            train_loss += loss.item()
+            logging(
+                "Training ----> Epoch: {}/{},  Batch: {}/{}*3,  training takes {}/{}s,  Avg.batch train loss: {}".format(
+                    epoch, epoches, idx + 1, len(train_loader), '{:.2f}'.format(time.time() - start_time),
+                    '{:.2f}'.format((time.time() - start_time) / (step_cnt+1) * len(train_loader) *3),
+                    '{:.5f}'.format(train_loss / (idx + 1))))
+
+            step_cnt +=1
+
+            if step_cnt % config['eval_steps'] == 0:
+                model.eval()
+                dev_loss, dev_accu, precision, recall, f1 = dev_epoch(
+                    epoch=epoch,
+                    config=config,
+                    model=model,
+                    dev_loader=dev_loader
+                )
+                logging("* Dev epoch {}".format(epoch + 1))
+                logging("-> loss={}, Accuracy={}, Precision={}, Recall={}, F1={}".format(dev_loss, dev_accu, precision, recall, f1))
+                with open(log_path + 'valid_result.csv', 'a') as file:
+                    file.write("{},{},{},{},{},{}\n".format(epoch, dev_loss, dev_accu, precision, recall, f1))
+
+                torch.save(model.state_dict(), os.path.join(checkpoint_dir, 'checkpint_steps_' + str(step_cnt) + '.model'))
+
+                if float(dev_accu) > float(best_accu):
+                    best_accu = dev_accu
+                    torch.save(model.state_dict(), os.path.join(checkpoint_dir, 'best_checkpoints.model'))
+                    logging('new epoch saved as the best model {}'.format(epoch))
+
+                model.train()
+
+        train_loss /= len(train_loader)
+        avg_accu, precision, recall, f1 = train_scorer.get_avg_scores()
+        avg_accu = '{:.2f}'.format(avg_accu)
+        precision = '{:.2f}'.format(precision)
+        recall = '{:.2f}'.format(recall)
+        f1 = '{:.2f}'.format(f1)
+        train_loss = '{:.4f}'.format(train_loss)
+
+
+        logging("* Train steps {} finished.".format(step_cnt))
+        logging("-> loss={}, Accuracy={}, Precision={}, Recall={}, F1={}".format(train_loss, avg_accu, precision, recall, f1))
 
         with open(log_path + 'train_result.csv', 'a') as file:
-            file.write("{},{},{}\n".format(epoch, train_loss,avg_accu))
+            file.write("{},{},{},{},{},{}\n".format(epoch, train_loss, avg_accu, precision, recall,f1))
 
-        dev_loss, dev_accu  = dev_epoch(
-            epoch = epoch,
-            config=config,
-            model=model,
-            dev_loader=dev_loader
-        )
-        logging("* Dev epoch {}".format(epoch + 1))
-        logging("-> loss={}, Accuracy={}".format(dev_loss,dev_accu))
-        with open(log_path + 'valid_result.csv', 'a') as file:
-            file.write("{},{},{}\n".format(epoch, dev_loss,dev_accu))
+    model.eval()
+    dev_loss, dev_accu, precision, recall, f1 = dev_epoch(
+        epoch=epoch,
+        config=config,
+        model=model,
+        dev_loader=dev_loader
+    )
+    logging("* Dev epoch {}".format(epoch + 1))
+    logging("-> loss={}, Accuracy={}, Precision={}, Recall={}, F1={}".format(dev_loss, dev_accu, precision, recall, f1))
+    with open(log_path + 'valid_result.csv', 'a') as file:
+        file.write("{},{},{},{},{},{}\n".format(epoch, dev_loss, dev_accu, precision, recall,f1))
 
-        torch.save({
-            "model": model.state_dict(),
-            "optimizer": optimizer.state_dict()
-        }, os.path.join(checkpoint_dir, 'bert_model_epoch'+str(epoch)+'.tar'))
+    torch.save(model.state_dict(), os.path.join(checkpoint_dir, 'checkpint_steps_' + str(step_cnt) + '.model'))
 
-
-
-
-        if float(dev_accu) >  float(best_accu):
-            patience_count = 0
-            best_accu = dev_accu
-
-            torch.save({
-                "model": model.state_dict(),
-                "optimizer": optimizer.state_dict()
-            }, os.path.join(checkpoint_dir, 'best_bert_model.tar'))
-            logging('new epoch saved as the best model {}'.format(epoch))
-
-            torch.save({
-                "model": model.state_dict(),
-                "optimizer": optimizer.state_dict()
-            }, os.path.join(config["checkpoint_dir"], 'bert_model_epoch' + '.tar'))
-
-        else:
-            patience_count += 1
-            if patience_count >= max_patience_epoches:
-                logging("Early Stopping at epoch {}".format(epoch + 1))
-                break
-
+    if float(dev_accu) > float(best_accu):
+        torch.save(model.state_dict(), os.path.join(checkpoint_dir, 'best_checkpoints.model'))
+        logging('new epoch saved as the best model {}'.format(epoch))
 
 
 
 def test(model, test_loader, checkpoint_dir, config):
-    checkpoint = torch.load(os.path.join(checkpoint_dir, "best_bert_model.tar"))
-    model.load_state_dict(checkpoint["model"])
 
-    test_loss,  avg_accu = dev_epoch(
+    test_loss, avg_accu, precision, recall, f1 = dev_epoch(
         epoch=0,
         config=config,
         model=model,
         dev_loader=test_loader
     )
     logging("* Result on test set")
-    logging("-> loss={}, Accuracy={}".format(test_loss, avg_accu))
+    logging("-> loss={}, Accuracy={}, Precision={}, Recall={}, F1={}".format(test_loss, avg_accu, precision, recall, f1))
 
 
 
 
 def main():
-
-
-    model = BertClassifier(config, transformer_width=768 , num_labels=2)
-    if config["use_our_pretrain"] == 'yes':
+    model = BertClassifier(config)
+    if config["load_model"] == 'yes':
         logging('using our pretrained model')
-        checkpoint = torch.load(config["our_pretrain_model"])
+        checkpoint = torch.load(config["load_checkpoint"])
         # print(list(model.bert_layer.named_parameters())[4])
-        model.bert_layer.load_state_dict(checkpoint['model'])
+        model.load_state_dict(checkpoint)
         # print(list(model.bert_layer.named_parameters())[4])
 
     if config['use_gpu']:
@@ -286,30 +228,30 @@ def main():
     # prepration for data
     if config['mode']=='train':
         logging("=" * 20+"Preparing training data..."+"=" * 20)
-        with open(config["train_dir"], "r") as f:
+        with open(config["data_train_path"], "r", encoding='utf-8') as f:
             indexed_train_data = json.loads(f.read())
-
-        # indexed_train_data['text'] = indexed_train_data['text'][:100]
-        # indexed_train_data['label'] = indexed_train_data['label'][:100]
-
-        train_data = LcqmcDataset(indexed_train_data, config['max_len'], padding_idx=0)
+        train_data = SentencePairDataset(indexed_train_data, config['max_len'], padding_idx=0)
         train_loader = DataLoader(train_data, shuffle=True, batch_size=config['batch_size'])
 
         logging("=" * 20+"Preparing dev data..."+"=" * 20)
-        with open(config["dev_dir"], "r") as f:
+        with open(config["data_dev_path"], "r", encoding='utf-8') as f:
             indexed_dev_data = json.loads(f.read())
-        dev_data = LcqmcDataset(indexed_dev_data, config['max_len'], padding_idx=0)
+        dev_data = SentencePairDataset(indexed_dev_data, config['max_len'], padding_idx=0)
         dev_loader = DataLoader(dev_data, shuffle=True, batch_size=config['batch_size'])
 
         train(model,  train_loader, dev_loader, config)
+
+
     elif config['mode']=='test':
         logging("=" * 20+"Preparing test data..."+"=" * 20)
-        with open(config["dev_dir"], "r") as f:  # test_dir
+        with open(config["data_test_path"], "r", encoding='utf-8') as f:  # test_dir
             indexed_test_data = json.loads(f.read())
-        test_data = LcqmcDataset(indexed_test_data, config['max_len'], padding_idx=0)
+        test_data = SentencePairDataset(indexed_test_data, config['max_len'], padding_idx=0)
         test_loader = DataLoader(test_data, shuffle=True, batch_size=config['batch_size'])
 
         test(model, test_loader, config["checkpoint_dir"], config)
+
+
     else:
         logging('wrong mode!')
         exit()

@@ -26,11 +26,12 @@ class LabelScorer:
 
     def get_avg_scores(self):
         accu = accuracy_score(self.reference_list, self.prediciton_list)
-        return accu
+        micro_precision = precision_score(self.reference_list, self.prediciton_list)
+        micro_recall = recall_score(self.reference_list, self.prediciton_list)
+        micro_f1 = f1_score(self.reference_list, self.prediciton_list)
+        return accu*100, micro_precision*100, micro_recall*100,  micro_f1*100
 
-        # micro_precision = precision_score(self.reference_list, self.prediciton_list, average="micro")
-        # micro_recall = recall_score(self.reference_list, self.prediciton_list,  average="micro")
-        # micro_f1 = f1_score(self.reference_list, self.prediciton_list, average="micro")
+
         #
         # macro_precision = precision_score(self.reference_list, self.prediciton_list,  average="macro")
         # macro_recall = recall_score(self.reference_list, self.prediciton_list,  average="macro")

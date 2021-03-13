@@ -1,31 +1,43 @@
 import torch
 import torch.nn as nn
 from transformers import BertModel,BertForSequenceClassification, BertTokenizer, BertForPreTraining
-
+from torch.nn import functional as F
 
 
 
 class BertClassifier(nn.Module):
-    def __init__(self, config, transformer_width, num_labels):
+    def __init__(self, config, transformer_width = 768, num_labels=2):
         super(BertClassifier, self).__init__()
-        self.bert_layer = BertModel.from_pretrained(config["pretrain_model"])
-        # self.tm = BertForSequenceClassification.from_pretrained(config["pretrain_model"])
-        self.classifier_layer = nn.Linear(transformer_width, num_labels)
-        # self.softmax = nn.Softmax(dim=-1)
+        # self.bert_layer = BertModel.from_pretrained(config["pretrain_model"])
+        # self.classifier_layer = nn.Linear(transformer_width, num_labels)
+        self.bert_layer = BertForSequenceClassification.from_pretrained(config["pretrain_model"], return_dict=True)
+
+    def forward(self, batch, use_gpu):
+        input_ids = batch["input_ids"]
+        token_type_ids = batch["token_type_ids"]
+        mask_ids = batch["mask_ids"]
+        labels = batch["labels"]
+
+        if use_gpu:
+            input_ids = input_ids.cuda()
+            token_type_ids = token_type_ids.cuda()
+            mask_ids = mask_ids.cuda()
+            labels = labels.cuda()
+
+        # _, y = self.bert_layer(input_ids=input_ids, attention_mask=mask_ids, token_type_ids=token_type_ids)
+        # logits = self.classifier_layer(y)
+
+        outputs = self.bert_layer(input_ids=input_ids, attention_mask=mask_ids, token_type_ids=token_type_ids)
+
+        labels = torch.squeeze(labels, dim=-1)
+
+        loss = F.cross_entropy(outputs.logits, labels)
+        prediction = outputs.logits.argmax(-1)
+
+        return loss, prediction
 
 
-    def forward(self, x, mask):
-        _, y = self.bert_layer(x, mask)
-        output = self.classifier_layer(y)
-        # logits = self.softmax(output)
-        return output
 
-
-    '''
-    TypeError: softmax() received an invalid combination of arguments - got (Tensor), but expected one of:
-     * (Tensor input, name dim, *, torch.dtype dtype)
-     * (Tensor input, int dim, torch.dtype dtype)
-     '''
 
 
 
