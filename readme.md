@@ -72,17 +72,21 @@ python preprocess.py --data_dir data/original/AFQMC/  --save_dir data/indexed/AF
 
 * 训练
 ```
-python main.py --mode train --batch_size 64 --save_dir_name train_lcqmc_seed1 --seed 1
+python main.py --mode train --batch_size 64 --save_dir_name train_lcqmc_seed1 --seed 1 
+
 ```
 * 测试
 ```
 python main.py --mode test --load_model yes --load_checkpoint checkpoints/train_lcqmc_seed1/best_checkpoints.model --data_test_path data/indexed/LCQMC/indexed_test.json --save_dir_name test_lcqmc_seed1
 
 ```
-
 * 测试大礼包
 ```
 python test_pkg.py --mode test --load_model yes --load_checkpoint checkpoints/train_lcqmc_seed1/best_checkpoints.model --save_dir_name test_lcqmc_seed1 
+
+```
+* 临时
+```
 
 ```
 
@@ -92,9 +96,37 @@ python test_pkg.py --mode test --load_model yes --load_checkpoint checkpoints/tr
 
 ## 使用LCQMC训练
 
-| Model | LCQMC-Valid  | LCQMC-Test | BQ-Valid | BQ-Test | AFQMC-valid  |
-| :----:| :----: | :----: | :----: | :----: | :----: |
-| BERT-base-Chinese | 
+
+### 汇总结果：多次随机种子最大值
+
+| Model  | 训练集 | LCQMC-Test | BQ-Valid | BQ-Test | AFQMC-valid  |
+| :----: | :----: | :----: | :----: | :----: | :----: |
+|||||||
+| BERT-base-Chinese | LCQMC  | 87.51(88.28)| 62.35(41.93)| 60.96(38.73)| 69.79(39.18)|
+| BERT-wwm-ext      | LCQMC  | | | | |
+|||||||
+| BERT-RecAdam      | LCQMC  | | | | |
+| SMART-BERT        | LCQMC  | | | | |
+|||||||
+
+
+
+### 所有实验
+
+
+使用LCQMC作为训练集
+
+| Model | seed | LCQMC-Valid  | LCQMC-Test | BQ-Valid | BQ-Test | AFQMC-valid  |
+| :----:| :----: | :----: | :----: | :----: | :----: | :----: |
+|||||||
+| BERT-base-Chinese | seed=1  | 89.47(89.70) | 86.71(87.72)| 59.67(34.37)| 58.42(31.39)| 69.79(39.18)|
+| BERT-base-Chinese | seed=2  | 88.96(89.34) | 85.69(86.98)| 60.19(36.15)| 59.39(34.15)| 69.25(41.36)|
+| BERT-base-Chinese | seed=3  | 89.16(89.40) | 86.47(87.54)| 62.35(41.93)| 60.96(38.73)| 68.88(39.64)|
+| BERT-base-Chinese | seed=42 | 89.43(89.50) | 87.51(88.28)| 58.63(31.47)| 58.34(30.73)| 69.65(39.58)|
+|||||||
+| BERT-base-Chinese | seed=   | () | ()| ()| ()| ()|
+
+
 
 
 

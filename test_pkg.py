@@ -75,8 +75,6 @@ def dev_epoch(epoch, config, model, dev_loader):
     scorer = LabelScorer()
     epoch_start_time =time.time()
     for idx, batch in enumerate(dev_loader):
-        if idx>31:
-            break
         loss, prediction = model(batch, config['use_gpu'])
 
         prediction = prediction.cpu().clone().numpy()
@@ -136,7 +134,7 @@ def main():
         with open(file, "r", encoding='utf-8') as f:  # test_dir
             indexed_test_data = json.loads(f.read())
         test_data = SentencePairDataset(indexed_test_data, config['max_len'], padding_idx=0)
-        test_loader = DataLoader(test_data, shuffle=True, batch_size=config['batch_size'])
+        test_loader = DataLoader(test_data, shuffle=False, batch_size=config['batch_size'])
 
         test(file, model, test_loader, config["checkpoint_dir"], config)
 

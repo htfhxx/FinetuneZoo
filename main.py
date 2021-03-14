@@ -31,6 +31,7 @@ parser.add_argument("--eval_steps", type=int, default=1000)
 parser.add_argument("--learning_rate", type=float, default=0.00002)
 parser.add_argument("--use_gpu", default='yes')  # no
 parser.add_argument("--gpus", default='0')
+parser.add_argument("--optimizer", default='AdamW')  # RecAdam
 args = parser.parse_args()
 
 with open(args.config, "r") as config_file:
@@ -51,6 +52,7 @@ config["epoches"] = args.epoches
 config["seed"] = args.seed
 config["eval_steps"] = args.eval_steps
 config["learning_rate"] = args.learning_rate
+config["optimizer"] = args.optimizer
 
 logging,log_path, checkpoint_dir = set_up_logging(config)
 
@@ -81,7 +83,7 @@ def dev_epoch(epoch, config, model, dev_loader):
     scorer = LabelScorer()
     epoch_start_time =time.time()
     for idx, batch in enumerate(dev_loader):
-        if idx>31:
+        if idx > 20:
             break
         loss, prediction = model(batch, config['use_gpu'])
 
@@ -108,7 +110,12 @@ def train(model, train_loader, dev_loader, config):
 
     epoches = config["epoches"]
     learning_rate = config["learning_rate"]
-    optimizer = AdamW(model.parameters(), lr=learning_rate)
+    if config['optimizer'] == 'Adam':
+        optimizer = AdamW(model.parameters(), lr=learning_rate)
+    else:
+        logging('wrong optimizer.')
+        exit()
+
 
     best_accu = 0
     step_cnt = 0
@@ -119,7 +126,7 @@ def train(model, train_loader, dev_loader, config):
         train_scorer = LabelScorer()
         model.train()
         for idx, batch in enumerate(train_loader):
-            if idx > 200:
+            if idx > 50:
                 break
             optimizer.zero_grad()
 
@@ -197,7 +204,7 @@ def train(model, train_loader, dev_loader, config):
 
 
 
-def test(model, test_loader, checkpoint_dir, config):
+def test(model, test_loader, config):
 
     test_loss, avg_accu, precision, recall, f1 = dev_epoch(
         epoch=0,
@@ -247,9 +254,9 @@ def main():
         with open(config["data_test_path"], "r", encoding='utf-8') as f:  # test_dir
             indexed_test_data = json.loads(f.read())
         test_data = SentencePairDataset(indexed_test_data, config['max_len'], padding_idx=0)
-        test_loader = DataLoader(test_data, shuffle=True, batch_size=config['batch_size'])
+        test_loader = DataLoader(test_data, shuffle=False, batch_size=config['batch_size'])
 
-        test(model, test_loader, config["checkpoint_dir"], config)
+        test(model, test_loader,  config)
 
 
     else:
