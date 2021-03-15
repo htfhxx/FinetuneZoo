@@ -7,6 +7,7 @@ class SentencePairDataset(Dataset):
         super(SentencePairDataset, self).__init__()
 
         self.data_size = len(data["input_ids"])
+        self.sentences = []
         self.input_ids = torch.ones((self.data_size, max_len), dtype=torch.int64) * padding_idx
         self.token_type_ids = torch.ones((self.data_size, max_len), dtype=torch.int64) * padding_idx
         self.mask_ids = torch.ones((self.data_size, max_len), dtype=torch.int64) * padding_idx
@@ -15,6 +16,7 @@ class SentencePairDataset(Dataset):
 
         for idx in range(self.data_size):
             content_len = min(len(data["input_ids"][idx]), max_len)
+            self.sentences.append(''.join(data['tokens'][idx]))
             self.input_ids[idx][:content_len] = torch.tensor(data["input_ids"][idx][:content_len], dtype=torch.int64)
             self.token_type_ids[idx][:content_len] = torch.tensor(data["token_type_ids"][idx][:content_len], dtype=torch.int64)
             self.mask_ids[idx][:content_len] = torch.tensor(data["mask_ids"][idx][:content_len], dtype=torch.int64)
@@ -26,6 +28,7 @@ class SentencePairDataset(Dataset):
 
     def __getitem__(self, idx):
         ret_data = {
+            "sentences": self.sentences[idx],
             "input_ids": self.input_ids[idx],
             "token_type_ids": self.token_type_ids[idx],
             "mask_ids": self.mask_ids[idx],

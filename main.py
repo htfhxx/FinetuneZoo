@@ -22,7 +22,7 @@ parser.add_argument("--data_test_path", default="data/indexed/LCQMC/indexed_test
 parser.add_argument("--pretrain_model", default="checkpoints/bert-base-chinese/")
 parser.add_argument("--load_model", default="no")  # yes or no
 parser.add_argument("--load_checkpoint", default="checkpoints/best_checkpoints.model")
-parser.add_argument("--mode", default="train")  # train or test
+parser.add_argument("--mode", default="train")  # train or test or reference
 parser.add_argument("--max_len", type=int, default=128)
 parser.add_argument("--batch_size", type=int, default=16) # 16
 parser.add_argument("--epoches", type=int, default=3)
@@ -82,20 +82,29 @@ def dev_epoch(epoch, config, model, dev_loader):
     #dev_loader_tqdm = tqdm(dev_loader, ncols=80)
     scorer = LabelScorer()
     epoch_start_time =time.time()
+    if config['mode'] == 'reference':
+        total_sentences = []
+        total_labels = []
+        total_prediction = []
     for idx, batch in enumerate(dev_loader):
-        if idx > 20:
-            break
+        # if idx > 2:
+        #     break
+
         loss, prediction = model(batch, config['use_gpu'])
 
         prediction = prediction.cpu().clone().numpy()
-        labels = list(batch['labels'].numpy())
+        labels = list(batch['labels'].clone().numpy())
         scorer.update(prediction, labels)
 
         dev_loss += loss.item()
-        # logging("Avg. batch test loss: {}".format(dev_loss / (idx + 1)))
         logging("Testing ----> Epoch: {},  Batch: {}/{},  This epoch takes {}/{} s,  Avg.batch test loss: {}".format(epoch, idx+1,len(dev_loader), '{:.2f}'.format(time.time()-epoch_start_time), '{:.2f}'.format((time.time()-epoch_start_time)/(idx+1)*len(dev_loader)), '{:.5f}'.format(dev_loss / (idx + 1))))
 
-        #dev_loader_tqdm.set_description(description)
+        if config['mode'] == 'reference':
+            total_sentences.extend(batch['sentences'])
+            total_labels.extend(labels)
+            total_prediction.extend(prediction)
+
+
     dev_loss /= len(dev_loader)
     avg_accu, precision, recall, f1 =  scorer.get_avg_scores()
     avg_accu = '{:.2f}'.format(avg_accu)
@@ -103,6 +112,19 @@ def dev_epoch(epoch, config, model, dev_loader):
     recall = '{:.2f}'.format(recall)
     f1 = '{:.2f}'.format(f1)
     dev_loss = '{:.4f}'.format(dev_loss)
+
+    if config['mode'] == 'reference':
+        assert len(total_sentences)==len(total_prediction)==len(total_labels)
+        with open(log_path + '/reference_result.csv','w',encoding='utf-8') as f:
+            f.write('sentence_pair \t labels \t prediction \n')
+            for idx in range(len(total_sentences)):
+                f.write(total_sentences[idx])
+                f.write('\t')
+                f.write(str(total_labels[idx]))
+                f.write('\t')
+                f.write(str(total_prediction[idx]))
+                f.write('\n')
+
     return dev_loss, avg_accu,precision, recall, f1
 
 
@@ -126,8 +148,8 @@ def train(model, train_loader, dev_loader, config):
         train_scorer = LabelScorer()
         model.train()
         for idx, batch in enumerate(train_loader):
-            if idx > 50:
-                break
+            # if idx > 50:
+            #     break
             optimizer.zero_grad()
 
             loss, prediction = model(batch, config['use_gpu'])
@@ -249,7 +271,7 @@ def main():
         train(model,  train_loader, dev_loader, config)
 
 
-    elif config['mode']=='test':
+    elif config['mode']=='test' or config['mode']=='reference':
         logging("=" * 20+"Preparing test data..."+"=" * 20)
         with open(config["data_test_path"], "r", encoding='utf-8') as f:  # test_dir
             indexed_test_data = json.loads(f.read())

@@ -19,7 +19,7 @@ parser.add_argument("--save_dir_name", default="balalala")
 parser.add_argument("--pretrain_model", default="checkpoints/bert-base-chinese/")
 parser.add_argument("--load_model", default="no")  # yes or no
 parser.add_argument("--load_checkpoint", default="checkpoints/best_checkpoints.model")
-parser.add_argument("--mode", default="train")  # train or test
+parser.add_argument("--mode", default="test")  #   test or reference
 parser.add_argument("--max_len", type=int, default=128)
 parser.add_argument("--batch_size", type=int, default=16) # 16
 parser.add_argument("--epoches", type=int, default=3)
