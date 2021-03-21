@@ -71,10 +71,6 @@ else:
     exit()
 
 
-
-
-
-
 def dev_epoch(epoch, config, model, dev_loader):
     model.eval()
 
