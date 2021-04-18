@@ -87,57 +87,6 @@ python main.py --mode reference --load_model yes --load_checkpoint checkpoints/t
 
 ```
 
-* 测试大礼包
-```
-python test_pkg.py --mode test --load_model yes --load_checkpoint checkpoints/train_lcqmc_seed1/best_checkpoints.model --save_dir_name test_lcqmc_seed1 
-
-```
-* 临时
-```
-python main.py --mode reference --load_model yes --load_checkpoint checkpoints/test_demo/best_checkpoints.model --data_test_path data/indexed/AFQMC/indexed_dev.json --save_dir_name reference_afqmc_seed3
-
-```
-
-
-
-# 下游任务效果
-
-## 使用LCQMC训练
-
-
-### 汇总结果：多次随机种子最大值
-
-| Model  | 训练集 | LCQMC-Test | BQ-Valid | BQ-Test | AFQMC-valid  |
-| :----: | :----: | :----: | :----: | :----: | :----: |
-|||||||
-| BERT-base-Chinese | LCQMC  | 87.51(88.28)| 62.35(41.93)| 60.96(38.73)| 69.79(39.18)|
-| BERT-wwm-ext      | LCQMC  | 87.70(88.40)| 60.04(35.05)| 59.07(32.93)| 70.18(39.44)|
-|||||||
-| BERT-RecAdam      | LCQMC  | | | | |
-| SMART-BERT        | LCQMC  | | | | |
-|||||||
-
-
-
-### 所有实验
-
-
-使用LCQMC作为训练集
-
-| Model | seed | LCQMC-Valid  | LCQMC-Test | BQ-Valid | BQ-Test | AFQMC-valid  |
-| :----:| :----: | :----: | :----: | :----: | :----: | :----: |
-|||||||
-| BERT-base-Chinese | seed=1  | 89.47(89.70) | 86.71(87.72)| 59.67(34.37)| 58.42(31.39)| 69.79(39.18)|
-| BERT-base-Chinese | seed=2  | 88.96(89.34) | 85.69(86.98)| 60.19(36.15)| 59.39(34.15)| 69.25(41.36)|
-| BERT-base-Chinese | seed=3  | 89.16(89.40) | 86.47(87.54)| 62.35(41.93)| 60.96(38.73)| 68.88(39.64)|
-| BERT-base-Chinese | seed=42 | 89.43(89.50) | 87.51(88.28)| 58.63(31.47)| 58.34(30.73)| 69.65(39.58)|
-|||||||
-| BERT-wwm-ext | seed=1   | 89.67(89.82) | 86.95(87.86)| 59.31(32.89)| 58.26(30.27)| 70.11(37.74)|
-| BERT-wwm-ext | seed=2   | 88.89(89.02) | 87.08(87.99)| 59.40(33.49)| 58.16(30.20)| 69.25(38.93)|
-| BERT-wwm-ext | seed=3   | 90.04(90.09) | 87.70(88.40)| 60.04(35.05)| 58.54(31.31)| 69.02(38.19)|
-| BERT-wwm-ext | seed=42  | 89.46(89.48) | 87.63(88.33)| 59.85(34.83)| 59.07(32.93)| 70.18(39.44)|
-|||||||
-
 
 
 

@@ -158,8 +158,8 @@ def train(model, train_loader, dev_loader, config):
 
             train_loss += loss.item()
             logging(
-                "Training ----> Epoch: {}/{},  Batch: {}/{}*3,  training takes {}/{}s,  Avg.batch train loss: {}".format(
-                    epoch, epoches, idx + 1, len(train_loader), '{:.2f}'.format(time.time() - start_time),
+                "Training ----> Epoch: {}/{},  Batch: {}/{}*{},  training takes {}/{}s,  Avg.batch train loss: {}".format(
+                    epoch, epoches, idx + 1,epoches, len(train_loader), '{:.2f}'.format(time.time() - start_time),
                     '{:.2f}'.format((time.time() - start_time) / (step_cnt+1) * len(train_loader) *3),
                     '{:.5f}'.format(train_loss / (idx + 1))))
 
