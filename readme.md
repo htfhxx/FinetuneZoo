@@ -34,9 +34,6 @@ python3 train_bert.py --mode test
 
 
 
-
-FROM docker.yard.oa.com:14917/yard/env:cuda10.0-py36-env-2.1
-
 RUN pip install torch==1.5.1
 RUN pip install tqdm == 4.46.0
 RUN pip install numpy == 1.19.4
